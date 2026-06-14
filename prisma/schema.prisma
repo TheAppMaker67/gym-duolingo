@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  name      String?
+  avatar    String?
+  streak    Int        @default(0)
+  xp        Int        @default(0)
+  level     Int        @default(1)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  workouts  Workout[]
+  exercises Exercise[]
+  leaderboard Leaderboard?
+  achievements UserAchievement[]
+
+  @@map("users")
+}
+
+model Workout {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String     // "strength", "cardio", "flexibility", "sports"
+  duration  Int        // minutes
+  intensity String     // "easy", "medium", "hard"
+  xpEarned  Int        @default(0)
+  streak    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  exercises Exercise[]
+
+  @@map("workouts")
+}
+
+model Exercise {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutId String?
+  workout   Workout?   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  name      String
+  sets      Int
+  reps      Int
+  weight    Float?
+  duration  Int?       // for cardio/cardio-like
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("exercises")
+}
+
+model Leaderboard {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rank      Int        @default(0)
+  weeklyXp  Int        @default(0)
+  monthlyXp Int        @default(0)
+  totalXp   Int        @default(0)
+  updatedAt DateTime   @updatedAt
+
+  @@map("leaderboards")
+}
+
+model Achievement {
+  id        String     @id @default(cuid())
+  title     String
+  description String
+  icon      String
+  requirement Int
+  type      String     // "streak", "xp", "workout_count", "weight"
+  createdAt DateTime   @default(now())
+
+  users     UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement  Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt   DateTime   @default(now())
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
